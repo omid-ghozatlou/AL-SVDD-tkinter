@@ -1,0 +1,90 @@
+
+"""
+Created on Tue Jul  6 17:09:52 2021
+
+@author: CEOSpaceTech
+"""
+from os import makedirs
+from tkinter import * 
+from PIL import ImageTk, Image
+import shutil
+import glob
+def visual(path):
+    root = Tk()
+    root.grid_rowconfigure(0, weight=1)
+    root.columnconfigure(0, weight=1)
+    # root.config(width=400, height=200)
+    makedirs(path + "/Train/positive", exist_ok=True)
+    makedirs(path + "/Train/negative", exist_ok=True)
+    positive_folder = path + "/Train/positive"
+    negative_folder = path + "/Train/negative"
+    images = glob.glob(path + '/unlabeled/*.png')
+    
+    img = []
+    for i in range(len(images)):
+        img.append(ImageTk.PhotoImage(Image.open(images[i]).resize((64, 64), Image.ANTIALIAS)))
+        
+    frame_main =Frame(root)    
+    frame_main.grid(sticky='news')
+    
+    # Create a frame for the canvas with non-zero row&column weights
+    frame_canvas = Frame(frame_main)
+    frame_canvas.grid(row=2, column=0, pady=(5, 0), sticky='nw')
+    frame_canvas.grid_rowconfigure(0, weight=1)
+    frame_canvas.grid_columnconfigure(0, weight=1)
+    # Set grid_propagate to False to allow 5-by-5 buttons resizing later
+    frame_canvas.grid_propagate(False)   
+    
+    # Add a canvas in that frame
+    canvas = Canvas(frame_canvas, bg="yellow")
+    canvas.grid(row=0, column=0, sticky="news")
+    
+    # Link a scrollbar to the canvas
+    vsb = Scrollbar(frame_canvas, orient="vertical", command=canvas.yview)
+    hsb = Scrollbar(frame_canvas, orient="horizontal", command=canvas.xview)
+    # vsb.grid(row=0, column=1, sticky='ns')
+    # hsb.grid(row=1, column=0, sticky='ew')
+    canvas.configure(yscrollcommand=vsb.set)
+    canvas.configure(xscrollcommand=hsb.set)
+    vsb.pack(side=RIGHT, fill=Y)
+    hsb.pack(side=BOTTOM, fill=X)
+    # Create a frame to contain the buttons
+    frame_buttons = Frame(canvas, bg="blue")
+    canvas.create_window((0, 0), window=frame_buttons, anchor='nw')
+    
+    def positive(x):   
+        shutil.move(images[x], positive_folder)
+    def negative(x):
+        shutil.move(images[x], negative_folder)
+    # def train():
+    #     root.destroy()
+    #     ranking.main()
+    # Add buttons to the frame
+    btn_nr = -1
+    columns = 85
+    rows = int(len(images)/columns)
+    buttons = [[Button() for j in range(columns)] for i in range(rows)]
+    # buttons = []
+    for i in range(0, rows):
+        for j in range(0, columns):
+            btn_nr += 1
+            buttons[i][j] = Button(frame_buttons, image=img[btn_nr]) #, command=lambda x=btn_nr: action(x))
+            buttons[i][j].grid(row=i, column=j, sticky='news')
+            buttons[i][j].bind('<Button-1>', lambda event, x=btn_nr: positive(x))#lambda x=btn_nr:positive(x))
+            buttons[i][j].bind('<Button-3>', lambda event, x=btn_nr: negative(x))
+            
+    # exit_button = Button(canvas,text='Train', command=train)
+    # exit_button.grid(row=1, column=1, columnspan=15)        
+    # Update buttons frames idle tasks to let tkinter calculate buttons sizes
+    frame_buttons.update_idletasks()
+    
+    # Resize the canvas frame to show exactly 5-by-5 buttons and the scrollbar
+    # first5columns_width = sum([buttons[0][j].winfo_width() for j in range(0, columns)])
+    # first5rows_height = sum([buttons[i][0].winfo_height() for i in range(0, columns)])
+    # frame_canvas.config(width=first5columns_width + vsb.winfo_width(),
+    #                     height=first5rows_height)
+    frame_canvas.pack(side=LEFT, expand=YES, fill=BOTH)
+    canvas.config(scrollregion=canvas.bbox("all"))
+    
+    
+    root.mainloop()
